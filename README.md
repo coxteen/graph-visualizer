@@ -1,51 +1,97 @@
+<div align="center">
+
 # Graph Visualizer
 
-A browser-based graph visualizer with a React frontend and a small FastAPI backend. Enter nodes and edges as text, and the frontend renders them on an interactive canvas with a lightweight force-directed layout.
+**Build and explore interactive graphs by describing nodes and edges as text.**
 
-## Features
+[![React](https://img.shields.io/badge/React-19-149ECA?style=flat-square&logo=react&logoColor=white)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vite.dev/)
 
-- Define standalone nodes or edges in a compact line-based format.
-- See the graph update as you type.
-- Drag nodes while the force simulation continues to settle the layout.
-- Pan and zoom the canvas with the standard React Flow interactions.
-- See active node and edge counts in the sidebar.
-- Receive inline validation markers for malformed input.
-- Use the backend health endpoint and interactive OpenAPI documentation.
-- Responsive sidebar behavior for desktop and mobile-sized screens.
+</div>
 
-## Project Structure
+---
 
-```text
-.
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py
-│   │   └── main.py          # FastAPI application and routes
-│   ├── requirements.txt     # Python dependencies
-│   └── run.py               # Uvicorn development entry point
-└── frontend/
-    ├── src/
-    │   ├── components/      # Sidebar and custom graph node
-    │   ├── physics/         # Force-directed layout engine
-    │   ├── styles/          # Shared visual theme
-    │   ├── types/           # TypeScript graph types
-    │   ├── App.tsx          # Main graph application
-    │   └── main.tsx         # React entry point
-    ├── package.json
-    └── vite.config.ts
+## Problem & Motivation
+
+Understanding the shape of a graph is easier when its structure is visible. Graph Visualizer turns a small text description into a draggable graph, arranging nodes with a force-directed simulation as you edit.
+
+The frontend owns graph parsing, rendering, and layout. The accompanying FastAPI backend currently provides a welcome route and health check, leaving a foundation for future API-backed graph features without making the editor depend on a server for its current behavior.
+
+## Key Features
+
+- **Text-based graph definition:** Define standalone nodes and edges one per line.
+- **Live graph updates:** The canvas reflects valid input as it is typed.
+- **Inline validation:** Invalid input lines are marked in the editor gutter.
+- **Force-directed layout:** Nodes repel one another and are pulled toward the canvas center.
+- **Direct manipulation:** Drag nodes; the layout simulation responds to their new positions.
+- **Graph overview:** The sidebar reports active node and edge counts.
+- **Responsive sidebar:** The editor panel adapts to narrow screens.
+- **FastAPI health endpoint:** Check backend availability and inspect its generated API docs.
+
+## Architecture & How It Works
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Editor as Sidebar editor
+    participant Parser as Graph input parser
+    participant App as React application
+    participant Engine as ForceEngine
+    participant Canvas as React Flow canvas
+
+    User->>Editor: Enter node and edge lines
+    Editor->>Parser: Parse text and validate each line
+    Parser-->>App: Return valid nodes, edges, and line statuses
+    App->>Canvas: Update graph elements
+    App->>Engine: Synchronize nodes and run simulation
+    Engine-->>Canvas: Update node positions
+    User->>Canvas: Drag a node
+    Canvas->>Engine: Update node position and drag state
+    Engine-->>Canvas: Continue layout simulation
 ```
 
-## Prerequisites
+## Tech Stack
 
-- Python 3.10 or newer
-- Node.js 18 or newer with npm
-- A modern browser
+| Category | Technology |
+| --- | --- |
+| Frontend | React 19, TypeScript, Vite |
+| Graph canvas | [`@xyflow/react`](https://reactflow.dev/) |
+| Icons | [`lucide-react`](https://lucide.dev/) |
+| Linting | Oxlint |
+| Backend | Python, FastAPI, Uvicorn |
+| API documentation | FastAPI OpenAPI, Swagger UI, and ReDoc |
 
-## Quick Start
+## Getting Started
 
-Run the backend and frontend in separate terminals.
+### Prerequisites & Environment Setup
 
-### 1. Start the backend
+#### 1. Install Python
+
+Download Python 3.10 or newer from the official [Python downloads page](https://www.python.org/downloads/). On Windows, run the installer and select **Add python.exe to PATH** before installing. Reopen your terminal after setup and check the version:
+
+```powershell
+python --version
+```
+
+The command should report Python 3.10 or newer.
+
+#### 2. Install Node.js and npm
+
+Download and install Node.js 20.19+ or 22.12+ from the official [Node.js download page](https://nodejs.org/en/download). Choose an LTS release that meets one of those version requirements. npm is included with the Node.js installer. Reopen your terminal and verify both commands:
+
+```powershell
+node --version
+npm --version
+```
+
+Node.js must be version 20.19+ or 22.12+ because the frontend uses Vite 8.
+
+#### 3. Set up and start the backend
+
+From the repository root, create a virtual environment and install the pinned dependencies.
 
 PowerShell:
 
@@ -67,11 +113,11 @@ python -m pip install -r requirements.txt
 python run.py
 ```
 
-The API starts at `http://127.0.0.1:8000`. Development reload is enabled by `run.py`.
+The development API listens at `http://127.0.0.1:8000` with Uvicorn reload enabled.
 
-### 2. Start the frontend
+#### 5. Set up and start the frontend
 
-In a second terminal from the repository root:
+Open a second terminal at the repository root:
 
 ```powershell
 cd frontend
@@ -79,13 +125,13 @@ npm install
 npm run dev
 ```
 
-Vite normally serves the application at `http://localhost:5173`. Open that URL in a browser.
+Open the Vite URL shown in the terminal, normally `http://localhost:5173`.
 
-The backend allows requests from the default Vite origin, `http://localhost:5173`. If the frontend runs on another port, update `allow_origins` in `backend/app/main.py`.
+The backend CORS policy allows the default Vite origin, `http://localhost:5173`. If Vite selects a different port, add that origin to `allow_origins` in [`backend/app/main.py`](backend/app/main.py).
 
-## Graph Input Format
+### Graph Input Format
 
-The editor accepts one item per line:
+Enter one node or edge per line:
 
 ```text
 A
@@ -95,35 +141,67 @@ A B
 B C
 ```
 
-A line containing one token defines a standalone node. A line containing two tokens defines an edge and automatically adds both endpoint nodes if they are not already defined.
+A single label defines a standalone node. Two labels separated by one space define an undirected-looking visual connection; both endpoint nodes are added automatically if needed.
 
-### Validation rules
+Input rules:
 
-- Labels must contain between 1 and 3 characters.
-- Labels cannot contain whitespace.
-- An edge must contain exactly two node labels separated by one space.
-- Self-edges such as `A A` are not allowed.
-- Duplicate node definitions are rejected.
-- Duplicate edges are rejected regardless of endpoint order, so `A B` and `B A` describe the same edge.
+- Node labels must be 1 to 3 characters and contain no whitespace.
+- Edge lines must contain exactly two labels separated by one space.
+- Self-edges such as `A A` are invalid.
+- Duplicate standalone node definitions are invalid.
+- Duplicate edges are invalid regardless of order (`A B` and `B A` are duplicates).
 - Empty lines are allowed.
-- Invalid lines are marked in the editor gutter and do not add graph data.
+- Invalid lines show an error marker and do not contribute graph elements.
 
-The graph is parsed locally in the frontend on every text change. The current backend does not persist or calculate graph data.
+### Build
 
-## Backend
+From the `frontend/` directory, run the production type-check and build:
 
-The backend is a FastAPI application served by Uvicorn.
+```powershell
+npm run build
+```
 
-### Routes
+This runs `tsc -b` followed by `vite build`. The static site is generated in `frontend/dist/`.
+
+### Preview the production build
+
+After building, run:
+
+```powershell
+npm run preview
+```
+
+Vite prints the local preview URL. The frontend can be hosted as static assets; the backend is a separate service.
+
+## Configuration
+
+### Force layout
+
+The default simulation parameters are defined in [`frontend/src/physics/forceEngine.ts`](frontend/src/physics/forceEngine.ts):
+
+```typescript
+center: { x: 350, y: 300 },
+repulsion: 8000,
+minDistance: 35,
+centerGravity: 0.02,
+damping: 0.82,
+stopThreshold: 0.04,
+```
+
+Adjust these values to change node spacing, attraction toward the center, and how quickly the simulation settles.
+
+### Backend CORS and routes
+
+CORS origins are configured in [`backend/app/main.py`](backend/app/main.py). The current API exposes:
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `GET` | `/` | Returns a welcome message with links to health and API docs. |
-| `GET` | `/api/health` | Returns the service status. |
-| `GET` | `/docs` | Opens FastAPI's Swagger UI. |
-| `GET` | `/redoc` | Opens FastAPI's ReDoc documentation. |
+| `GET` | `/` | Welcome message. |
+| `GET` | `/api/health` | Service status. |
+| `GET` | `/docs` | Interactive Swagger UI. |
+| `GET` | `/redoc` | ReDoc API reference. |
 
-Example health check:
+Check backend health with PowerShell:
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8000/api/health
@@ -138,65 +216,15 @@ Expected response:
 }
 ```
 
-### Backend development notes
+## Notes
 
-- Dependencies are pinned in `backend/requirements.txt`.
-- `backend/run.py` binds to `127.0.0.1:8000` and enables reload mode.
-- CORS currently permits only `http://localhost:5173`.
-- There are no database, authentication, or persistence layers.
+- Graph input is parsed entirely in the frontend; graph data is not sent to or stored by the backend.
+- The backend currently has no database, authentication, or graph-processing routes.
+- The force layout is implemented in the frontend and uses pairwise node repulsion and center gravity.
+- Frontend scripts are available from `frontend/`: `npm run dev`, `npm run build`, `npm run lint`, and `npm run preview`.
+- No frontend test suite is currently configured.
 
-## Frontend
+## License & Author
 
-The frontend uses React 19, TypeScript, Vite, `@xyflow/react`, and `lucide-react`.
-
-### Available scripts
-
-Run these commands from `frontend/`:
-
-```powershell
-npm run dev       # Start the Vite development server
-npm run build     # Type-check and create a production build
-npm run lint      # Run Oxlint
-npm run preview   # Serve the production build locally
-```
-
-### Frontend behavior
-
-- `App.tsx` owns the graph state and connects the editor to React Flow.
-- `Sidebar.tsx` parses the input and displays validation statuses and counts.
-- `CustomCircleNode.tsx` renders the circular node appearance.
-- `forceEngine.ts` applies pairwise repulsion, center gravity, damping, and drag state.
-- `theme.ts` contains shared colors, dimensions, typography, and breakpoints.
-- `index.css` provides global layout and React Flow control styling.
-
-The current frontend uses inline styles for component-specific styling and has no frontend test suite configured yet.
-
-## Production Build
-
-Build the frontend and preview it locally:
-
-```powershell
-cd frontend
-npm run build
-npm run preview
-```
-
-The generated static assets are written to `frontend/dist/`. The backend remains a separate service and must be deployed or run independently if API functionality is expanded.
-
-## Troubleshooting
-
-### The frontend cannot reach the backend
-
-Confirm that the backend is running on `127.0.0.1:8000`, then visit `/api/health` directly. If the frontend is using a non-default Vite port, add that exact origin to the CORS configuration in `backend/app/main.py`.
-
-### PowerShell blocks virtual-environment activation
-
-Run PowerShell with an appropriate execution policy for your user, or use Command Prompt and activate the environment with `.venv\\Scripts\\activate`.
-
-### The graph appears empty
-
-Check the editor gutter for validation markers. Use labels of one to three non-whitespace characters and edges with exactly one space, such as `A B`.
-
-## License
-
-No license file is currently included in this repository.
+- **Author:** Not specified in the repository metadata.
+- **License:** No license file is currently included in this repository.
